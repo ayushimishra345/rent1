@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rent &amp; Utility Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1b14;
+    --bg-2:#132018;
+    --paper:#eaf0e3;
+    --paper-shadow:#c7d4bc;
+    --rule:#b9cdb0;
+    --rule-strong:#93a986;
+    --ink:#1f3325;
+    --ink-soft:#4a5c48;
+    --stamp:#b5432d;
+    --brass:#a6793e;
+    --brass-dark:#7d5a2b;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #1a2c1f 0%, var(--bg) 55%, #0a120d 100%);
+    min-height:100vh;
+    font-family:'Courier Prime', monospace;
+    color:var(--ink);
+    padding:48px 16px 80px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .brand{
+    font-family:'Special Elite', monospace;
+    color:#d8e2cf;
+    letter-spacing:.35em;
+    font-size:12px;
+    text-transform:uppercase;
+    margin-bottom:28px;
+    opacity:.7;
+  }
+
+  .paper{
+    position:relative;
+    width:100%;
+    max-width:680px;
+    background:
+      repeating-linear-gradient(
+        var(--paper) 0px, var(--paper) 27px,
+        var(--rule) 28px, var(--paper) 29px
+      );
+    background-color:var(--paper);
+    padding:56px 44px 40px;
+    clip-path:polygon(
+      0% 3%,4% 0%,8% 3%,12% 0%,16% 3%,20% 0%,24% 3%,28% 0%,
+      32% 3%,36% 0%,40% 3%,44% 0%,48% 3%,52% 0%,56% 3%,60% 0%,
+      64% 3%,68% 0%,72% 3%,76% 0%,80% 3%,84% 0%,88% 3%,92% 0%,
+      96% 3%,100% 0%,100% 100%,0% 100%
+    );
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.6), 0 2px 0 var(--paper-shadow);
+    transform:rotate(-0.3deg);
+  }
+
+  .ledger-no{
+    position:absolute;
+    top:22px; right:32px;
+    font-size:11px;
+    letter-spacing:.15em;
+    color:var(--ink-soft);
+    text-align:right;
+  }
+  .ledger-no b{color:var(--ink); font-family:'Special Elite',monospace;}
+
+  h1{
+    font-family:'Special Elite', monospace;
+    font-size:26px;
+    letter-spacing:.08em;
+    margin:0 0 2px;
+    text-transform:uppercase;
+  }
+  .subtitle{
+    font-size:12px;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin-bottom:22px;
+  }
+
+  .rule{
+    border:none;
+    border-top:1px dashed var(--rule-strong);
+    margin:20px 0;
+  }
+
+  .field-row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .field{
+    flex:1 1 160px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:var(--ink-soft);
+  }
+  input{
+    font-family:'Courier Prime', monospace;
+    font-size:14px;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--rule-strong);
+    padding:4px 2px;
+    color:var(--ink);
+    outline:none;
+  }
+  input:focus{border-bottom:1px solid var(--stamp);}
+  input::placeholder{color:#8fa085;}
+
+  textarea{
+    font-family:'Courier Prime', monospace;
+    font-size:13px;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--rule-strong);
+    padding:4px 2px;
+    color:var(--ink);
+    outline:none;
+    resize:vertical;
+    line-height:1.5;
+  }
+  textarea:focus{border-bottom:1px solid var(--stamp);}
+  textarea::placeholder{color:#8fa085;}
+  .hint{
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+    font-style:italic;
+    color:#8fa085;
+    font-size:9.5px;
+  }
+
+  .util-block{margin:18px 0;}
+  .util-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .util-cost{
+    color:var(--stamp);
+    font-weight:700;
+    font-size:14px;
+  }
+  .util-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+  }
+  .util-grid.five{grid-template-columns:repeat(5, 1fr);}
+  .util-meta{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+
+  .totals{
+    margin-top:26px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .totals-lines{flex:1 1 220px;}
+  .totals-lines div{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    padding:3px 0;
+  }
+  .totals-lines .grand{
+    font-family:'Special Elite', monospace;
+    font-size:16px;
+    border-top:1px solid var(--rule-strong);
+    margin-top:6px;
+    padding-top:8px;
+  }
+
+  .stamp{
+    flex:0 0 auto;
+    width:128px;
+    height:128px;
+    border-radius:50%;
+    border:3px double var(--stamp);
+    color:var(--stamp);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    transform:rotate(-9deg);
+    mix-blend-mode:multiply;
+    opacity:.85;
+    font-family:'Special Elite', monospace;
+    line-height:1.3;
+    padding:8px;
+  }
+  .stamp .amt{font-size:15px; font-weight:700;}
+  .stamp .lbl{font-size:9px; letter-spacing:.15em; text-transform:uppercase;}
+
+  .actions{
+    margin-top:30px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    padding:11px 18px;
+    border-radius:2px;
+    border:1px solid var(--brass-dark);
+    background:var(--brass);
+    color:#fbf6ea;
+    cursor:pointer;
+    transition:transform .12s ease, background .12s ease;
+  }
+  button:hover{background:var(--brass-dark);}
+  button:active{transform:translateY(1px);}
+  button.ghost{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--rule-strong);
+  }
+  button.ghost:hover{background:rgba(0,0,0,.05);}
+  button.danger{
+    background:transparent;
+    color:var(--stamp);
+    border:1px solid var(--stamp);
+    padding:6px 10px;
+    font-size:10px;
+  }
+
+  .footnote{
+    margin-top:22px;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    font-style:italic;
+    text-align:center;
+  }
+
+  /* History */
+  .history-wrap{
+    width:100%;
+    max-width:680px;
+    margin-top:36px;
+  }
+  .history-title{
+    font-family:'Special Elite', monospace;
+    color:#d8e2cf;
+    letter-spacing:.15em;
+    font-size:13px;
+    text-transform:uppercase;
+    margin-bottom:12px;
+    opacity:.85;
+  }
+  .history-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .history-row{
+    background:var(--paper);
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    box-shadow:0 6px 14px -8px rgba(0,0,0,.5);
+  }
+  .history-info{font-size:12px;}
+  .history-info b{font-family:'Special Elite',monospace; font-size:12px;}
+  .history-amt{
+    font-weight:700;
+    color:var(--stamp);
+    font-size:13px;
+  }
+  .history-actions{display:flex; gap:6px;}
+  .history-actions button{padding:6px 10px; font-size:10px;}
+  .empty-state{
+    color:#94a389;
+    font-size:12px;
+    font-style:italic;
+    text-align:center;
+    padding:20px 0;
+  }
+
+  @media (max-width:520px){
+    .paper{padding:44px 22px 30px;}
+    .util-grid, .util-grid.five{grid-template-columns:repeat(2,1fr);}
+    .stamp{width:104px; height:104px;}
+  }
+
+  @media print{
+    body{padding:0; background:#fff;}
+    .brand, .actions, .history-wrap, .footnote{display:none !important;}
+    .paper{box-shadow:none; clip-path:none; transform:none; max-width:100%;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="brand">✎ Rent &amp; Utility Ledger</div>
+
+  <div class="paper" id="paper">
+    <div class="ledger-no">ENTRY NO.<br><b id="entryNo">001</b></div>
+
+    <h1>Rent Receipt</h1>
+    <div class="subtitle">monthly rent &amp; utility settlement</div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="fromDate">From Date</label>
+        <input type="text" id="fromDate" placeholder="DD/MM/YYYY">
+      </div>
+      <div class="field">
+        <label for="toDate">To Date</label>
+        <input type="text" id="toDate" placeholder="DD/MM/YYYY">
+      </div>
+      <div class="field">
+        <label for="name">Tenant Name</label>
+        <input type="text" id="name" placeholder="Full name">
+      </div>
+      <div class="field">
+        <label for="rent">Base House Rent (Rs.)</label>
+        <input type="number" id="rent" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- Electricity -->
+    <div class="util-block">
+      <div class="util-head"><span>Electricity</span><span class="util-cost" id="elecCostDisplay">Rs. 0.00</span></div>
+      <div class="util-grid">
+        <div class="field"><label>Prev</label><input type="number" id="elecPrev" placeholder="0"></div>
+        <div class="field"><label>Curr</label><input type="number" id="elecCurr" placeholder="0"></div>
+        <div class="field"><label>Rate/Unit</label><input type="number" id="elecRate" placeholder="0.00" step="0.01"></div>
+        <div class="field"><label>Units</label><input type="text" id="elecUnitsDisplay" disabled placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- Water & Jeena -->
+    <div class="util-block">
+      <div class="util-head"><span>Water &amp; Jeena (combined)</span><span class="util-cost" id="wjCostDisplay">Rs. 0.00</span></div>
+      <div class="util-grid five">
+        <div class="field"><label>Prev</label><input type="number" id="wjPrev" placeholder="0"></div>
+        <div class="field"><label>Curr</label><input type="number" id="wjCurr" placeholder="0"></div>
+        <div class="field"><label>Rate/Unit</label><input type="number" id="wjRate" placeholder="0.00" step="0.01"></div>
+        <div class="field"><label>Split (people)</label><input type="number" id="wjPeople" placeholder="1" min="1"></div>
+        <div class="field"><label>Units</label><input type="text" id="wjUnitsDisplay" disabled placeholder="0"></div>
+      </div>
+      <div class="util-meta">Bill is split evenly across the number of people/flats sharing it.</div>
+    </div>
+
+    <!-- Scooty -->
+    <div class="util-block">
+      <div class="util-head"><span>Scooty Charges</span><span class="util-cost" id="scootyCostDisplay">Rs. 0.00</span></div>
+      <div class="util-grid">
+        <div class="field"><label>Prev</label><input type="number" id="scootyPrev" placeholder="0"></div>
+        <div class="field"><label>Curr</label><input type="number" id="scootyCurr" placeholder="0"></div>
+        <div class="field"><label>Rate/Unit</label><input type="number" id="scootyRate" placeholder="0.00" step="0.01"></div>
+        <div class="field"><label>Units</label><input type="text" id="scootyUnitsDisplay" disabled placeholder="0"></div>
+      </div>
+    </div>
+
+    <!-- Other Charges -->
+    <div class="util-block">
+      <div class="util-head"><span>Other Charges</span><span class="util-cost" id="otherCostDisplay">Rs. 0.00</span></div>
+      <div class="util-grid" style="grid-template-columns:1.4fr 1fr;">
+        <div class="field"><label>Charge Name</label><input type="text" id="otherLabel" placeholder="e.g. Maintenance, Repair, Fine"></div>
+        <div class="field"><label>Amount (Rs.)</label><input type="number" id="otherAmount" placeholder="0.00" step="0.01"></div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Explain this charge <span class="hint">(shown on the receipt &amp; download)</span></label>
+        <textarea id="otherDesc" rows="2" placeholder="e.g. One-time plumber visit to fix the kitchen tap on 3rd of this month."></textarea>
+      </div>
+    </div>
+
+    <hr class="rule">
+
+    <div class="totals">
+      <div class="totals-lines">
+        <div><span>Base Rent</span><span id="rentLine">Rs. 0.00</span></div>
+        <div><span>Electricity</span><span id="elecLine">Rs. 0.00</span></div>
+        <div><span>Water &amp; Jeena</span><span id="wjLine">Rs. 0.00</span></div>
+        <div><span>Scooty</span><span id="scootyLine">Rs. 0.00</span></div>
+        <div><span id="otherLineLabel">Other Charges</span><span id="otherLine">Rs. 0.00</span></div>
+        <div class="grand"><span>Total Payable</span><span id="grandLine">Rs. 0.00</span></div>
+      </div>
+      <div class="stamp">
+        <div>
+          <div class="amt" id="stampAmt">Rs. 0.00</div>
+          <div class="lbl">Total Payable</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="saveBtn">Save Entry to Ledger</button>
+      <button class="ghost" id="downloadBtn">Download Receipt (.txt)</button>
+      <button class="ghost" id="printBtn">Print Receipt</button>
+    </div>
+
+    <div class="footnote">made by AM .</div>
+  </div>
+
+  <div class="history-wrap">
+    <div class="history-title">Ledger History</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+<script>
+  const ids = [
+    'fromDate','toDate','name','rent',
+    'elecPrev','elecCurr','elecRate',
+    'wjPrev','wjCurr','wjRate','wjPeople',
+    'scootyPrev','scootyCurr','scootyRate',
+    'otherLabel','otherAmount','otherDesc'
+  ];
+  const el = {};
+  ids.forEach(id => el[id] = document.getElementById(id));
+
+  const STORAGE_KEY = 'rentLedgerRecords';
+
+  function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+  function currentRecord(){
+    const rent = num(el.rent.value);
+
+    const elecPrev = num(el.elecPrev.value), elecCurr = num(el.elecCurr.value);
+    const elecUnits = elecCurr - elecPrev;
+    const elecRate = num(el.elecRate.value);
+    const elecCost = elecUnits * elecRate;
+
+    const wjPrev = num(el.wjPrev.value), wjCurr = num(el.wjCurr.value);
+    const wjUnits = wjCurr - wjPrev;
+    const wjRate = num(el.wjRate.value);
+    const wjPeople = Math.max(1, num(el.wjPeople.value) || 1);
+    const wjCost = (wjUnits * wjRate) / wjPeople;
+
+    const scootyPrev = num(el.scootyPrev.value), scootyCurr = num(el.scootyCurr.value);
+    const scootyUnits = scootyCurr - scootyPrev;
+    const scootyRate = num(el.scootyRate.value);
+    const scootyCost = scootyUnits * scootyRate;
+
+    const otherLabel = el.otherLabel.value.trim();
+    const otherDesc = el.otherDesc.value.trim();
+    const otherCost = num(el.otherAmount.value);
+
+    const grandTotal = rent + elecCost + wjCost + scootyCost + otherCost;
+
+    return {
+      fromDate: el.fromDate.value.trim(),
+      toDate: el.toDate.value.trim(),
+      name: el.name.value.trim(),
+      rent, elecPrev, elecCurr, elecUnits, elecRate, elecCost,
+      wjPrev, wjCurr, wjUnits, wjRate, wjPeople, wjCost,
+      scootyPrev, scootyCurr, scootyUnits, scootyRate, scootyCost,
+      otherLabel, otherDesc, otherCost,
+      grandTotal
+    };
+  }
+
+  function fmt(n){ return 'Rs. ' + n.toFixed(2); }
+
+  function recalc(){
+    const r = currentRecord();
+    document.getElementById('elecUnitsDisplay').value = r.elecUnits;
+    document.getElementById('wjUnitsDisplay').value = r.wjUnits;
+    document.getElementById('scootyUnitsDisplay').value = r.scootyUnits;
+
+    document.getElementById('elecCostDisplay').textContent = fmt(r.elecCost);
+    document.getElementById('wjCostDisplay').textContent = fmt(r.wjCost);
+    document.getElementById('scootyCostDisplay').textContent = fmt(r.scootyCost);
+    document.getElementById('otherCostDisplay').textContent = fmt(r.otherCost);
+
+    document.getElementById('rentLine').textContent = fmt(r.rent);
+    document.getElementById('elecLine').textContent = fmt(r.elecCost);
+    document.getElementById('wjLine').textContent = fmt(r.wjCost);
+    document.getElementById('scootyLine').textContent = fmt(r.scootyCost);
+    document.getElementById('otherLineLabel').textContent = r.otherLabel || 'Other Charges';
+    document.getElementById('otherLine').textContent = fmt(r.otherCost);
+    document.getElementById('grandLine').textContent = fmt(r.grandTotal);
+    document.getElementById('stampAmt').textContent = fmt(r.grandTotal);
+  }
+
+  ids.forEach(id => el[id].addEventListener('input', recalc));
+
+  function getRecords(){
+    try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function setRecords(arr){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+
+  function pad(n){ return String(n).padStart(3,'0'); }
+
+  function refreshEntryNo(){
+    document.getElementById('entryNo').textContent = pad(getRecords().length + 1);
+  }
+
+  function receiptText(r, entryNo){
+    const line = '='.repeat(56);
+    const dash = '-'.repeat(56);
+    const pl = (s,w) => String(s).padEnd(w);
+    const rows = [
+      pl('UTILITY',15) + pl('PREV',6) + pl('CURR',6) + pl('UNITS',6) + pl('DIV',6) + 'COST',
+      pl('Electricity',15) + pl(r.elecPrev,6) + pl(r.elecCurr,6) + pl(r.elecUnits,6) + pl('-',6) + fmt(r.elecCost),
+      pl('Water/Jeena',15) + pl(r.wjPrev,6) + pl(r.wjCurr,6) + pl(r.wjUnits,6) + pl(r.wjPeople,6) + fmt(r.wjCost),
+      pl('Scooty',15) + pl(r.scootyPrev,6) + pl(r.scootyCurr,6) + pl(r.scootyUnits,6) + pl('-',6) + fmt(r.scootyCost)
+    ];
+    const otherLine = (r.otherCost || r.otherLabel)
+      ? `${r.otherLabel || 'Other Charges'}: ${fmt(r.otherCost)}`
+      : null;
+    const otherNote = r.otherDesc ? `  Note: ${r.otherDesc}` : null;
+
+    return [
+      line,
+      `ENTRY NO: ${pad(entryNo)}`,
+      `PERIOD: ${r.fromDate || '-'}  to  ${r.toDate || '-'}  |  TENANT: ${r.name || '-'}`,
+      dash,
+      `Base Rent: ${fmt(r.rent)}`,
+      dash,
+      ...rows,
+      dash,
+      otherLine,
+      otherNote,
+      otherLine ? dash : null,
+      `GRAND TOTAL: ${fmt(r.grandTotal)}`,
+      line, ''
+    ].filter(x => x !== null).join('\n');
+  }
+
+  function downloadTextFile(filename, content){
+    const blob = new Blob([content], {type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function renderHistory(){
+    const records = getRecords();
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+    if(records.length === 0){
+      list.innerHTML = '<div class="empty-state">No entries saved yet. </div>';
+      return;
+    }
+    records.slice().reverse().forEach((r) => {
+      const originalIndex = records.indexOf(r);
+      const row = document.createElement('div');
+      row.className = 'history-row';
+      row.innerHTML = `
+        <div class="history-info"><b>#${pad(originalIndex+1)}</b> &nbsp; ${r.fromDate || '-'} &rarr; ${r.toDate || '-'} &nbsp; — &nbsp; ${r.name || 'Unnamed tenant'}
+          &nbsp; <span class="history-amt">${fmt(r.grandTotal)}</span>
+        </div>
+        <div class="history-actions">
+          <button class="ghost" data-action="dl" data-idx="${originalIndex}">Download</button>
+          <button class="danger" data-action="del" data-idx="${originalIndex}">Delete</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll('button[data-action="dl"]').forEach(btn=>{
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx,10);
+        const r = getRecords()[idx];
+        downloadTextFile(`rent_receipt_entry_${pad(idx+1)}.txt`, receiptText(r, idx+1));
+      });
+    });
+    list.querySelectorAll('button[data-action="del"]').forEach(btn=>{
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx,10);
+        if(!confirm('Delete this ledger entry? This cannot be undone.')) return;
+        const records = getRecords();
+        records.splice(idx,1);
+        setRecords(records);
+        renderHistory();
+        refreshEntryNo();
+      });
+    });
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const r = currentRecord();
+    if(!r.fromDate || !r.toDate || !r.name){
+      alert('Please enter From Date, To Date, and tenant name before saving.');
+      return;
+    }
+    const records = getRecords();
+    records.push(r);
+    setRecords(records);
+    renderHistory();
+    refreshEntryNo();
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    const r = currentRecord();
+    const entryNo = getRecords().length + 1;
+    const fname = `rent_receipt_${(r.fromDate||'draft').replace(/\//g,'-')}_to_${(r.toDate||'draft').replace(/\//g,'-')}.txt`;
+    downloadTextFile(fname, receiptText(r, entryNo));
+  });
+
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  recalc();
+  renderHistory();
+  refreshEntryNo();
+</script>
+</body>
+</html>
