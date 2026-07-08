@@ -22,8 +22,6 @@
     --brass-dark:#7d5a2b;
   }
 
-
-  
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
 
@@ -176,6 +174,7 @@
     gap:10px;
   }
   .util-grid.five{grid-template-columns:repeat(5, 1fr);}
+  .util-grid.six{grid-template-columns:repeat(3, 1fr);}
   .util-meta{
     font-size:11px;
     color:var(--ink-soft);
@@ -318,7 +317,7 @@
 
   @media (max-width:520px){
     .paper{padding:44px 22px 30px;}
-    .util-grid, .util-grid.five{grid-template-columns:repeat(2,1fr);}
+    .util-grid, .util-grid.five, .util-grid.six{grid-template-columns:repeat(2,1fr);}
     .stamp{width:104px; height:104px;}
   }
 
@@ -341,12 +340,8 @@
 
     <div class="field-row">
       <div class="field">
-        <label for="fromDate">From Date</label>
-        <input type="text" id="fromDate" placeholder="DD/MM/YYYY">
-      </div>
-      <div class="field">
-        <label for="toDate">To Date</label>
-        <input type="text" id="toDate" placeholder="DD/MM/YYYY">
+        <label for="date">Date</label>
+        <input type="text" id="date" placeholder="DD/MM/YYYY">
       </div>
       <div class="field">
         <label for="name">Tenant Name</label>
@@ -363,10 +358,12 @@
     <!-- Electricity -->
     <div class="util-block">
       <div class="util-head"><span>Electricity</span><span class="util-cost" id="elecCostDisplay">Rs. 0.00</span></div>
-      <div class="util-grid">
+      <div class="util-grid six">
+        <div class="field"><label>From Date</label><input type="text" id="elecFromDate" placeholder="DD/MM/YYYY"></div>
+        <div class="field"><label>To Date</label><input type="text" id="elecToDate" placeholder="DD/MM/YYYY"></div>
+        <div class="field"><label>Rate/Unit</label><input type="number" id="elecRate" placeholder="0.00" step="0.01"></div>
         <div class="field"><label>Prev</label><input type="number" id="elecPrev" placeholder="0"></div>
         <div class="field"><label>Curr</label><input type="number" id="elecCurr" placeholder="0"></div>
-        <div class="field"><label>Rate/Unit</label><input type="number" id="elecRate" placeholder="0.00" step="0.01"></div>
         <div class="field"><label>Units</label><input type="text" id="elecUnitsDisplay" disabled placeholder="0"></div>
       </div>
     </div>
@@ -443,8 +440,8 @@
 
 <script>
   const ids = [
-    'fromDate','toDate','name','rent',
-    'elecPrev','elecCurr','elecRate',
+    'date','name','rent',
+    'elecFromDate','elecToDate','elecPrev','elecCurr','elecRate',
     'wjPrev','wjCurr','wjRate','wjPeople',
     'scootyPrev','scootyCurr','scootyRate',
     'otherLabel','otherAmount','otherDesc'
@@ -482,10 +479,12 @@
     const grandTotal = rent + elecCost + wjCost + scootyCost + otherCost;
 
     return {
-      fromDate: el.fromDate.value.trim(),
-      toDate: el.toDate.value.trim(),
+      date: el.date.value.trim(),
       name: el.name.value.trim(),
-      rent, elecPrev, elecCurr, elecUnits, elecRate, elecCost,
+      rent,
+      elecFromDate: el.elecFromDate.value.trim(),
+      elecToDate: el.elecToDate.value.trim(),
+      elecPrev, elecCurr, elecUnits, elecRate, elecCost,
       wjPrev, wjCurr, wjUnits, wjRate, wjPeople, wjCost,
       scootyPrev, scootyCurr, scootyUnits, scootyRate, scootyCost,
       otherLabel, otherDesc, otherCost,
@@ -546,14 +545,18 @@
       ? `${r.otherLabel || 'Other Charges'}: ${fmt(r.otherCost)}`
       : null;
     const otherNote = r.otherDesc ? `  Note: ${r.otherDesc}` : null;
+    const elecPeriod = (r.elecFromDate || r.elecToDate)
+      ? `Electricity Billing Period: ${r.elecFromDate || '-'}  to  ${r.elecToDate || '-'}`
+      : null;
 
     return [
       line,
       `ENTRY NO: ${pad(entryNo)}`,
-      `PERIOD: ${r.fromDate || '-'}  to  ${r.toDate || '-'}  |  TENANT: ${r.name || '-'}`,
+      `DATE: ${r.date || '-'}  |  TENANT: ${r.name || '-'}`,
       dash,
       `Base Rent: ${fmt(r.rent)}`,
       dash,
+      elecPeriod,
       ...rows,
       dash,
       otherLine,
@@ -587,7 +590,7 @@
       const row = document.createElement('div');
       row.className = 'history-row';
       row.innerHTML = `
-        <div class="history-info"><b>#${pad(originalIndex+1)}</b> &nbsp; ${r.fromDate || '-'} &rarr; ${r.toDate || '-'} &nbsp; — &nbsp; ${r.name || 'Unnamed tenant'}
+        <div class="history-info"><b>#${pad(originalIndex+1)}</b> &nbsp; ${r.date || '-'} &nbsp; — &nbsp; ${r.name || 'Unnamed tenant'}
           &nbsp; <span class="history-amt">${fmt(r.grandTotal)}</span>
         </div>
         <div class="history-actions">
@@ -620,8 +623,8 @@
 
   document.getElementById('saveBtn').addEventListener('click', () => {
     const r = currentRecord();
-    if(!r.fromDate || !r.toDate || !r.name){
-      alert('Please enter From Date, To Date, and tenant name before saving.');
+    if(!r.date || !r.name){
+      alert('Please enter a date and tenant name before saving.');
       return;
     }
     const records = getRecords();
@@ -634,7 +637,7 @@
   document.getElementById('downloadBtn').addEventListener('click', () => {
     const r = currentRecord();
     const entryNo = getRecords().length + 1;
-    const fname = `rent_receipt_${(r.fromDate||'draft').replace(/\//g,'-')}_to_${(r.toDate||'draft').replace(/\//g,'-')}.txt`;
+    const fname = `rent_receipt_${(r.date||'draft').replace(/\//g,'-')}.txt`;
     downloadTextFile(fname, receiptText(r, entryNo));
   });
 
