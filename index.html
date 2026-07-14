@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --bg:#0f1b14;
@@ -259,6 +260,12 @@
     padding:6px 10px;
     font-size:10px;
   }
+  button.whatsapp{
+    background:#25D366;
+    border:1px solid #1da851;
+    color:#08380f;
+  }
+  button.whatsapp:hover{background:#1da851; color:#fff;}
 
   .footnote{
     margin-top:22px;
@@ -428,6 +435,7 @@
       <button id="saveBtn">Save Entry to Ledger</button>
       <button class="ghost" id="downloadBtn">Download Receipt (.txt)</button>
       <button class="ghost" id="printBtn">Print Receipt</button>
+      <button class="whatsapp" id="shareBtn">Share PDF on WhatsApp</button>
     </div>
 
     <div class="footnote">made by AM .</div>
@@ -567,14 +575,38 @@
     ].filter(x => x !== null).join('\n');
   }
 
-  function downloadTextFile(filename, content){
-    const blob = new Blob([content], {type:'text/plain'});
+  function downloadBlob(filename, blob){
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function downloadTextFile(filename, content){
+    downloadBlob(filename, new Blob([content], {type:'text/plain'}));
+  }
+
+  function generateReceiptPDF(r, entryNo){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:'pt', format:'a4' });
+    doc.setFont('courier','normal');
+    doc.setFontSize(11);
+    const lines = receiptText(r, entryNo).split('\n');
+    let y = 50;
+    const left = 40;
+    const lineHeight = 15;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    lines.forEach(line => {
+      if(y > pageHeight - 40){
+        doc.addPage();
+        y = 50;
+      }
+      doc.text(line, left, y);
+      y += lineHeight;
+    });
+    return doc.output('blob');
   }
 
   function renderHistory(){
@@ -642,6 +674,40 @@
   });
 
   document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    const r = currentRecord();
+    const entryNo = getRecords().length + 1;
+    const shareBtn = document.getElementById('shareBtn');
+    const originalLabel = shareBtn.textContent;
+    shareBtn.textContent = 'Preparing PDF...';
+    shareBtn.disabled = true;
+
+    try{
+      const pdfBlob = generateReceiptPDF(r, entryNo);
+      const fileName = `rent_receipt_${(r.date||'draft').replace(/\//g,'-')}.pdf`;
+      const file = new File([pdfBlob], fileName, { type:'application/pdf' });
+      const captionText = `Rent receipt for ${r.name || 'tenant'}${r.date ? ' — ' + r.date : ''} — Total: ${fmt(r.grandTotal)}`;
+
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        // Opens the native share sheet — pick WhatsApp there to send the PDF directly
+        await navigator.share({ files:[file], title:'Rent Receipt', text: captionText });
+      } else {
+        // No direct file-share support in this browser: download the PDF, then
+        // open WhatsApp with the message pre-filled so it can be attached manually.
+        downloadBlob(fileName, pdfBlob);
+        const msg = encodeURIComponent(`${captionText}\n\n(PDF downloaded — attach it to this chat)`);
+        window.open(`https://wa.me/?text=${msg}`, '_blank');
+      }
+    } catch(err){
+      if(err.name !== 'AbortError'){
+        alert('Could not share the PDF. Please try the Download button instead.');
+      }
+    } finally {
+      shareBtn.textContent = originalLabel;
+      shareBtn.disabled = false;
+    }
+  });
 
   recalc();
   renderHistory();
